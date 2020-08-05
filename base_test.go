@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+// Command 1 setup
 var command1 = Command{
 	Name:       "give",
 	Usage:      "give <player> <thing>",
@@ -28,9 +29,23 @@ func command1Validator2(args []string) error {
 	return nil
 }
 
-func command1Handler(args []string) bool {
+func command1Handler(c Context) bool {
 	// We have nothing we actually want to do here, but this is normally where you'd write your code.
 	// For example, inserting something into a database, terminating a connection, etc.
+	return true
+}
+
+// Command 2 setup
+var command2 = Command{
+	Name:       "test",
+	Usage:      "test",
+	Validators: []Validator{},
+	Handler:    command2Handler,
+}
+
+func command2Handler(c Context) bool {
+	c.Get("test")
+
 	return true
 }
 
@@ -96,5 +111,21 @@ func TestUnknownCommandMessage(t *testing.T) {
 	ok, err = base.HandleCommand(input)
 	if ok || err.Error() != customMessage {
 		t.Fatalf("Custom unknown command message should've been returned, but wasn't. Ok: %v, Error: %v", ok, err)
+	}
+}
+
+func TestContext(t *testing.T) {
+	base := New("/")
+
+	base.Set("test", 1337)
+
+	if err := base.Register(command2); err != nil {
+		t.Fatalf("Register should've returned nil, but returned an error: %v", err)
+	}
+
+	input := "/test"
+	ok, err := base.HandleCommand(input)
+	if !ok || err != nil {
+		t.Fatalf("Command should've run successfully, but failed. Ok: %v, Error: %v", ok, err)
 	}
 }
