@@ -8,9 +8,16 @@ type Command struct {
 	Handler
 }
 
+// Context holds context data for use by command handlers
+type Context struct {
+	Args    []string
+	Store   Store
+	Command *Command
+}
+
 // Handler is a type representation of a command handling function. Handler functions should return true if they
 // were executed successfully, and false if they were cancelled.
-type Handler func(args []string) bool
+type Handler func(c Context) bool
 
 // Validator represents a function used for validating the inputs for a command.
 // Validators must return nil if the command should continue to be run, or an error if the provided input was invalid.
@@ -25,4 +32,9 @@ func (cmd *Command) Validate(args []string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+// Get retrieves an interface from the context
+func (c *Context) Get(key string) interface{} {
+	return c.Store[key]
 }

@@ -10,7 +10,11 @@ type Base struct {
 	CommandSymbol         string
 	Commands              map[string]Command
 	UnknownCommandMessage string
+	Store
 }
+
+// Store is a string->interface map for storing context data to be passed to handlers
+type Store map[string]interface{}
 
 // New is the function for creating a new command base. Please use this function instead of creating an instance of Base yourself!
 //
@@ -21,6 +25,7 @@ func New(commandSymbol string) Base {
 		CommandSymbol:         commandSymbol,
 		UnknownCommandMessage: "Unknown command",
 		Commands:              make(map[string]Command),
+		Store:                 make(map[string]interface{}),
 	}
 }
 
@@ -100,10 +105,28 @@ func (base *Base) HandleCommand(input string) (bool, error) {
 		return false, err
 	}
 
-	// If validation passed, then now we run the command handler.
-	if success := command.Handler(args); !success {
+	// If validation passed, then build context and run the command handler.
+	if success := command.Handler(Context{
+		Args:    args,
+		Store:   base.Store,
+		Command: &command,
+	}); !success {
 		return false, nil
 	}
 
 	return true, nil
+}
+
+// Set stores an interface to the store map
+func (base *Base) Set(key string, value interface{}) {
+	if base.Store == nil {
+		base.Store = make(map[string]interface{})
+	}
+
+	base.Store[key] = value
+}
+
+// Get retrieves an interface from the store map
+func (base *Base) Get(key string) interface{} {
+	return base.Store[key]
 }
