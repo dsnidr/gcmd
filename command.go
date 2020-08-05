@@ -4,8 +4,8 @@ package gcmd
 type Command struct {
 	Name       string
 	Usage      string
-	Validators []Validator
-	Handler
+	middleware []MiddlewareFunc
+	Handler    HandlerFunc
 }
 
 // Context holds context data for use by command handlers
@@ -15,23 +15,35 @@ type Context struct {
 	Command *Command
 }
 
-// Handler is a type representation of a command handling function. Handler functions should return true if they
+// HandlerFunc is a type representation of a command handling function. Handler functions should return true if they
 // were executed successfully, and false if they were cancelled.
-type Handler func(c Context) bool
+type HandlerFunc func(c Context) error
 
-// Validator represents a function used for validating the inputs for a command.
-// Validators must return nil if the command should continue to be run, or an error if the provided input was invalid.
-type Validator func(args []string) error
+// MiddlewareFunc represents a chainable middleware function
+type MiddlewareFunc func(HandlerFunc) HandlerFunc
 
-// Validate runs all validators. If they all pass, true and nil are returned. Otherwise, false and an error is returned.
-func (cmd *Command) Validate(args []string) (bool, error) {
-	for _, validator := range cmd.Validators {
-		if err := validator(args); err != nil {
-			return false, err
-		}
+// Use adds middleware to the middleware chain
+func (cmd *Command) Use(middleware ...MiddlewareFunc) {
+	if cmd.middleware == nil {
+		cmd.middleware = []MiddlewareFunc{}
 	}
 
-	return true, nil
+	cmd.middleware = append(cmd.middleware, middleware...)
+}
+
+func (cmd *Command) applyMiddleware() HandlerFunc {
+	handler := cmd.Handler
+
+	for i := len(cmd.middleware) - 1; i >= 0; i-- {
+		handler = cmd.middleware[i](handler)
+	}
+
+	return handler
+}
+
+// Set retrieves an interface from the context
+func (c *Context) Set(key string, value interface{}) {
+	c.Store[key] = value
 }
 
 // Get retrieves an interface from the context

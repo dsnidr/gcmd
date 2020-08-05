@@ -7,46 +7,53 @@ import (
 
 // Command 1 setup
 var command1 = Command{
-	Name:       "give",
-	Usage:      "give <player> <thing>",
-	Validators: []Validator{command1Validator1, command1Validator2},
-	Handler:    command1Handler,
+	Name:    "give",
+	Usage:   "give <player> <thing>",
+	Handler: command1Handler,
 }
 
-func command1Validator1(args []string) error {
-	if len(args) != 2 {
-		return fmt.Errorf("Not enough arguments. Expected 2, received %d", len(args))
+func command1Validator1(next HandlerFunc) HandlerFunc {
+	return func(c Context) error {
+		if len(c.Args) != 2 {
+			return fmt.Errorf("Not enough arguments. Expected 2, received %d", len(c.Args))
+		}
+
+		return next(c)
 	}
-
-	return nil
 }
 
-func command1Validator2(args []string) error {
-	if args[1] != "job" {
-		return fmt.Errorf("Job not offered. Expected: \"job\", received %s", args[1])
+func command1Validator2(next HandlerFunc) HandlerFunc {
+	return func(c Context) error {
+		if c.Args[1] != "job" {
+			return fmt.Errorf("Job not offered. Expected: \"job\", received %s", c.Args[1])
+		}
+
+		return next(c)
 	}
-
-	return nil
 }
 
-func command1Handler(c Context) bool {
+func command1Handler(c Context) error {
 	// We have nothing we actually want to do here, but this is normally where you'd write your code.
 	// For example, inserting something into a database, terminating a connection, etc.
-	return true
+	return nil
 }
 
 // Command 2 setup
 var command2 = Command{
-	Name:       "test",
-	Usage:      "test",
-	Validators: []Validator{},
-	Handler:    command2Handler,
+	Name:    "test",
+	Usage:   "test",
+	Handler: command2Handler,
 }
 
-func command2Handler(c Context) bool {
+func command2Handler(c Context) error {
 	c.Get("test")
 
-	return true
+	return nil
+}
+
+func init() {
+	command1.Use(command1Validator1)
+	command1.Use(command1Validator2)
 }
 
 func TestRegisterCommand(t *testing.T) {

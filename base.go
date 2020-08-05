@@ -100,18 +100,16 @@ func (base *Base) HandleCommand(input string) (bool, error) {
 	// Remove the command identifier from args
 	args = args[1:]
 
-	// Run all command validators
-	if valid, err := command.Validate(args); !valid {
-		return false, err
-	}
+	// Build middleware chain for execution
+	handler := command.applyMiddleware()
 
 	// If validation passed, then build context and run the command handler.
-	if success := command.Handler(Context{
+	if err := handler(Context{
 		Args:    args,
 		Store:   base.Store,
 		Command: &command,
-	}); !success {
-		return false, nil
+	}); err != nil {
+		return false, err
 	}
 
 	return true, nil
