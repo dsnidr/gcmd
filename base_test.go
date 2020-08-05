@@ -46,7 +46,24 @@ var command2 = Command{
 }
 
 func command2Handler(c Context) error {
-	c.Get("test")
+	if c.Get("test").(int) != 1337 {
+		return fmt.Errorf("Value of 'test' was not 1337")
+	}
+
+	return nil
+}
+
+// Command 3 setup
+var command3 = Command{
+	Name:    "extra",
+	Usage:   "extra",
+	Handler: command3Handler,
+}
+
+func command3Handler(c Context) error {
+	if c.Get("extra").(string) != "extra value" {
+		return fmt.Errorf("Value of 'test' was not 'extra value'")
+	}
 
 	return nil
 }
@@ -73,7 +90,7 @@ func TestHandleCommandPass(t *testing.T) {
 
 	// Should run successfully
 	input := "/give sniddunc job"
-	ok, err := base.HandleCommand(input)
+	ok, err := base.HandleCommand(input, nil)
 	if !ok || err != nil {
 		t.Fatalf("Command should've run successfully, but failed. Ok: %v, Error: %v", ok, err)
 	}
@@ -88,14 +105,14 @@ func TestHandleCommandFail(t *testing.T) {
 
 	// Should fail due to lack of arguments
 	input := "/give"
-	ok, err := base.HandleCommand(input)
+	ok, err := base.HandleCommand(input, nil)
 	if ok || err == nil {
 		t.Fatalf("Command should've failed, but succeeded. Ok: %v, Error: %v", ok, err)
 	}
 
 	// Should fail due to unknown command
 	input = "/unknown"
-	ok, err = base.HandleCommand(input)
+	ok, err = base.HandleCommand(input, nil)
 	if ok || err == nil {
 		t.Fatalf("Command should've failed, but succeeded. Ok: %v, Error: %v", ok, err)
 	}
@@ -106,7 +123,7 @@ func TestUnknownCommandMessage(t *testing.T) {
 
 	// Should return default unknown command message
 	input := "/unknown"
-	ok, err := base.HandleCommand(input)
+	ok, err := base.HandleCommand(input, nil)
 	if ok || err.Error() != "Unknown command" {
 		t.Fatalf("Default unknown command message should've been returned, but wasn't. Ok: %v, Error: %v", ok, err)
 	}
@@ -115,7 +132,7 @@ func TestUnknownCommandMessage(t *testing.T) {
 	customMessage := "Not sure why this test exists, if I'm being honest. I do enjoy testing, though."
 	base.UnknownCommandMessage = customMessage
 	input = "/unknown"
-	ok, err = base.HandleCommand(input)
+	ok, err = base.HandleCommand(input, nil)
 	if ok || err.Error() != customMessage {
 		t.Fatalf("Custom unknown command message should've been returned, but wasn't. Ok: %v, Error: %v", ok, err)
 	}
@@ -131,7 +148,23 @@ func TestContext(t *testing.T) {
 	}
 
 	input := "/test"
-	ok, err := base.HandleCommand(input)
+	ok, err := base.HandleCommand(input, nil)
+	if !ok || err != nil {
+		t.Fatalf("Command should've run successfully, but failed. Ok: %v, Error: %v", ok, err)
+	}
+}
+
+func TestExtraStore(t *testing.T) {
+	base := New("/")
+
+	if err := base.Register(command3); err != nil {
+		t.Fatalf("Register should've returned nil, but returned an error: %v", err)
+	}
+
+	extraStore := map[string]interface{}{"extra": "extra value"}
+
+	input := "/extra"
+	ok, err := base.HandleCommand(input, extraStore)
 	if !ok || err != nil {
 		t.Fatalf("Command should've run successfully, but failed. Ok: %v, Error: %v", ok, err)
 	}

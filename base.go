@@ -76,7 +76,7 @@ func (base *Base) Register(command Command) error {
 // then the bool will be false and error will be set to an error.
 //
 // If the command was fully executed successfully, the bool will be true and error will be nil.
-func (base *Base) HandleCommand(input string) (bool, error) {
+func (base *Base) HandleCommand(input string, store Store) (bool, error) {
 	input = strings.TrimSpace(input)
 
 	// If the first char wasn't equal to base.CommandSymbol, we assume that the user was not trying to execute a command
@@ -104,11 +104,19 @@ func (base *Base) HandleCommand(input string) (bool, error) {
 	handler := command.applyMiddleware()
 
 	// If validation passed, then build context and run the command handler.
-	if err := handler(Context{
+	ctx := Context{
 		Args:    args,
 		Store:   base.Store,
 		Command: &command,
-	}); err != nil {
+	}
+
+	// Add keys from provided store into the context store
+	for key, val := range store {
+		ctx.Set(key, val)
+	}
+
+	// Start chain
+	if err := handler(ctx); err != nil {
 		return false, err
 	}
 
