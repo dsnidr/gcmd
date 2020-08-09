@@ -79,6 +79,10 @@ func (base *Base) Register(command Command) error {
 func (base *Base) HandleCommand(input string, store Store) (bool, error) {
 	input = strings.TrimSpace(input)
 
+	if len(input) < 1 {
+		return false, nil
+	}
+
 	// If the first char wasn't equal to base.CommandSymbol, we assume that the user was not trying to execute a command
 	// so we return false and do not set an error.
 	if input[0:1] != base.CommandSymbol {
